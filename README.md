@@ -110,12 +110,14 @@ streamlit run app.py
 The app supports two AI providers (both optional):
 
 ### OpenAI
-- Models: GPT-4 Turbo, GPT-4, GPT-3.5
+- Models: o1-mini, o3, o3-pro (reasoning models)
 - Add key: `OPENAI_API_KEY` in Streamlit secrets
+- Note: o3 and o3-pro models might require special access
 
 ### Google Gemini
-- Models: Gemini 1.5 Pro, Gemini 1.5 Flash
+- Models: Gemini 2.0 Flash (experimental), Gemini 1.5 Pro, Gemini 1.5 Flash
 - Add key: `GEMINI_API_KEY` in Streamlit secrets
+- Note: Using latest available Gemini models
 
 **Note:** The app works without API keys using rule-based optimization.
 
