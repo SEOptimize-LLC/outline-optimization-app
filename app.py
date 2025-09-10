@@ -8,7 +8,7 @@ from io import StringIO
 
 # Try to import AI libraries (optional)
 try:
-    import openai
+    from openai import OpenAI  # FIXED: Using new OpenAI client
     OPENAI_AVAILABLE = True
 except ImportError:
     OPENAI_AVAILABLE = False
@@ -108,13 +108,15 @@ class AIConfigManager:
         if OPENAI_AVAILABLE:
             try:
                 if 'OPENAI_API_KEY' in st.secrets:
-                    openai.api_key = st.secrets['OPENAI_API_KEY']
+                    # FIXED: Create OpenAI client with new API
+                    client = OpenAI(api_key=st.secrets['OPENAI_API_KEY'])
                     self.available_apis['openai'] = {
                         'configured': True,
-                        'models': ['gpt-4.1-mini', 'gpt-5', 'gpt-4o-mini'],  # Available models
+                        'models': ['gpt-4.1-mini', 'gpt-5', 'gpt-4o-mini'],  # YOUR models preserved
                         'default_model': 'gpt-4-turbo-preview',
                         'display_name': 'OpenAI',
-                        'api_key': st.secrets['OPENAI_API_KEY']
+                        'api_key': st.secrets['OPENAI_API_KEY'],
+                        'client': client  # Store the client
                     }
                 else:
                     self.available_apis['openai'] = {'configured': False}
@@ -128,7 +130,7 @@ class AIConfigManager:
                     genai.configure(api_key=st.secrets['GEMINI_API_KEY'])
                     self.available_apis['gemini'] = {
                         'configured': True,
-                        'models': ['gemini-2.5-pro', 'gemini-2.5-flash'],
+                        'models': ['gemini-2.5-pro', 'gemini-2.5-flash'],  # YOUR models preserved
                         'default_model': 'gemini-1.5-pro',
                         'display_name': 'Google Gemini',
                         'api_key': st.secrets['GEMINI_API_KEY']
@@ -160,6 +162,7 @@ class OutlineOptimizer:
         self.ai_provider = None
         self.model = None
         self.ai_enabled = False
+        self.openai_client = None  # Store OpenAI client
         self.intent_types = {
             'informational': 'Knowledge-seeking, how-to guides, explanations',
             'navigational': 'Specific websites, brands, resources',
@@ -176,6 +179,9 @@ class OutlineOptimizer:
                 self.ai_provider = provider_id
                 self.model = model or config['default_model']
                 self.ai_enabled = True
+                # FIXED: Get the OpenAI client if available
+                if provider_id == 'openai' and 'client' in config:
+                    self.openai_client = config['client']
                 return True
         return False
     
@@ -371,9 +377,14 @@ class OutlineOptimizer:
         """
     
     def _openai_analysis(self, prompt):
-        """Process with OpenAI"""
+        """Process with OpenAI using NEW client API"""
+        if not self.openai_client:
+            st.error("OpenAI client not initialized")
+            return self.fallback_analysis("", "")
+        
         try:
-            response = openai.ChatCompletion.create(
+            # FIXED: Using new OpenAI client API
+            response = self.openai_client.chat.completions.create(
                 model=self.model,
                 messages=[
                     {"role": "system", "content": "You are an expert SEO analyst. Return only valid JSON."},
@@ -385,6 +396,13 @@ class OutlineOptimizer:
             
             response_text = response.choices[0].message.content
             response_text = response_text.replace("```json", "").replace("```", "").strip()
+            
+            # Clean JSON extraction
+            if '{' in response_text:
+                response_text = response_text[response_text.index('{'):]
+            if '}' in response_text:
+                response_text = response_text[:response_text.rindex('}')+1]
+                
             result = json.loads(response_text)
             return result
             
@@ -407,6 +425,13 @@ class OutlineOptimizer:
             
             response_text = response.text
             response_text = response_text.replace("```json", "").replace("```", "").strip()
+            
+            # Clean JSON extraction
+            if '{' in response_text:
+                response_text = response_text[response_text.index('{'):]
+            if '}' in response_text:
+                response_text = response_text[:response_text.rindex('}')+1]
+                
             result = json.loads(response_text)
             return result
             
@@ -703,16 +728,10 @@ def main():
                             selected_model = st.selectbox(
                                 "Select Model",
                                 selected_provider['models'],
-                                help="gpt-4-turbo is recommended. o1-mini for reasoning. o3/o3-pro may require special access."
+                                help="Select your preferred model"
                             )
                             optimizer.set_provider(selected_provider['id'], selected_model)
                             st.success(f"Using: {selected_model}")
-                            
-                            # Add note about model availability
-                            if selected_model in ['o3', 'o3-pro']:
-                                st.info("Note: o3/o3-pro are advanced models. Will fallback to gpt-4-turbo if not accessible.")
-                            elif selected_model == 'o1-mini':
-                                st.info("Note: o1-mini is optimized for reasoning tasks.")
                     else:
                         st.info("Using rule-based optimization")
             else:
