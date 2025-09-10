@@ -702,10 +702,17 @@ def main():
                         if selected_provider:
                             selected_model = st.selectbox(
                                 "Select Model",
-                                selected_provider['models']
+                                selected_provider['models'],
+                                help="gpt-4-turbo is recommended. o1-mini for reasoning. o3/o3-pro may require special access."
                             )
                             optimizer.set_provider(selected_provider['id'], selected_model)
                             st.success(f"Using: {selected_model}")
+                            
+                            # Add note about model availability
+                            if selected_model in ['o3', 'o3-pro']:
+                                st.info("Note: o3/o3-pro are advanced models. Will fallback to gpt-4-turbo if not accessible.")
+                            elif selected_model == 'o1-mini':
+                                st.info("Note: o1-mini is optimized for reasoning tasks.")
                     else:
                         st.info("Using rule-based optimization")
             else:
