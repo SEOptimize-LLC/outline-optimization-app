@@ -556,12 +556,12 @@ class OutlineOptimizer:
         return "Provide comprehensive information on the topic"
     
     def calculate_relevance(self, text1, text2):
-        """Calculate relevance score between two texts"""
+        """Calculate relevance score between two texts - FIXED for better matching"""
         words1 = set(text1.lower().split())
         words2 = set(text2.lower().split())
         
-        # Remove common stop words
-        stop_words = {'the', 'is', 'at', 'which', 'on', 'a', 'an', 'and', 'or', 'but', 'in', 'with', 'to', 'for', 'of', 'as'}
+        # Expanded stop words list
+        stop_words = {'the', 'is', 'at', 'which', 'on', 'a', 'an', 'and', 'or', 'but', 'in', 'with', 'to', 'for', 'of', 'as', 'by', 'from', 'your', 'my', 'can', 'does', 'will', 'are'}
         words1 = words1 - stop_words
         words2 = words2 - stop_words
         
@@ -572,7 +572,19 @@ class OutlineOptimizer:
         intersection = words1.intersection(words2)
         union = words1.union(words2)
         
-        return len(intersection) / len(union) if union else 0
+        # Also check for partial matches (if any word from text1 is contained in any word from text2)
+        partial_matches = 0
+        for w1 in words1:
+            for w2 in words2:
+                if len(w1) > 3 and len(w2) > 3:  # Only check meaningful words
+                    if w1 in w2 or w2 in w1:
+                        partial_matches += 0.5
+        
+        base_score = len(intersection) / len(union) if union else 0
+        partial_score = partial_matches / (len(words1) + len(words2)) if (words1 and words2) else 0
+        
+        # Combine scores with weight on exact matches
+        return (base_score * 0.7) + (partial_score * 0.3)
     
     def generate_enhancements(self, section_title, fanout_data):
         """Generate enhancement bullets based on fanout data"""
