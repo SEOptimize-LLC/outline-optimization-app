@@ -1,0 +1,29 @@
+# Streamlit Configuration
+# Place this file in .streamlit/config.toml
+
+[theme]
+# Primary color for interactive elements
+primaryColor = "#1e3d59"
+
+# Background color for the main content area
+backgroundColor = "#ffffff"
+
+# Background color for sidebar
+secondaryBackgroundColor = "#f0f2f6"
+
+# Color used for text
+textColor = "#262730"
+
+# Font family
+font = "sans serif"
+
+[server]
+# Max upload size in MB
+maxUploadSize = 10
+
+# Port
+port = 8501
+
+[browser]
+# Gather usage stats
+gatherUsageStats = false
