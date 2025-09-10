@@ -111,7 +111,7 @@ class AIConfigManager:
                     openai.api_key = st.secrets['OPENAI_API_KEY']
                     self.available_apis['openai'] = {
                         'configured': True,
-                        'models': ['gpt-4-turbo-preview', 'gpt-4', 'gpt-3.5-turbo'],  # Available models
+                        'models': ['gpt-4.1-mini', 'gpt-5', 'gpt-4o-mini'],  # Available models
                         'default_model': 'gpt-4-turbo-preview',
                         'display_name': 'OpenAI',
                         'api_key': st.secrets['OPENAI_API_KEY']
@@ -128,7 +128,7 @@ class AIConfigManager:
                     genai.configure(api_key=st.secrets['GEMINI_API_KEY'])
                     self.available_apis['gemini'] = {
                         'configured': True,
-                        'models': ['gemini-1.5-pro', 'gemini-1.5-flash'],
+                        'models': ['gemini-2.5-pro', 'gemini-2.5-flash'],
                         'default_model': 'gemini-1.5-pro',
                         'display_name': 'Google Gemini',
                         'api_key': st.secrets['GEMINI_API_KEY']
