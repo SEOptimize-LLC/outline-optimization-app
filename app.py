@@ -383,16 +383,32 @@ class OutlineOptimizer:
             return self.fallback_analysis("", "")
         
         try:
-            # FIXED: Using new OpenAI client API
-            response = self.openai_client.chat.completions.create(
-                model=self.model,
-                messages=[
-                    {"role": "system", "content": "You are an expert SEO analyst. Return only valid JSON."},
-                    {"role": "user", "content": prompt}
-                ],
-                temperature=0.3,
-                max_tokens=2000
-            )
+            # Models that need max_completion_tokens instead of max_tokens
+            new_models = ['gpt-5', 'gpt-4.1-mini', 'gpt-4o-mini', 'o1-mini', 'o1-preview']
+            
+            # FIXED: Using correct parameter based on model
+            if self.model in new_models:
+                # Use max_completion_tokens for newer models
+                response = self.openai_client.chat.completions.create(
+                    model=self.model,
+                    messages=[
+                        {"role": "system", "content": "You are an expert SEO analyst. Return only valid JSON."},
+                        {"role": "user", "content": prompt}
+                    ],
+                    temperature=0.3,
+                    max_completion_tokens=2000  # FIXED: Using max_completion_tokens
+                )
+            else:
+                # Use max_tokens for older models (fallback)
+                response = self.openai_client.chat.completions.create(
+                    model=self.model,
+                    messages=[
+                        {"role": "system", "content": "You are an expert SEO analyst. Return only valid JSON."},
+                        {"role": "user", "content": prompt}
+                    ],
+                    temperature=0.3,
+                    max_tokens=2000
+                )
             
             response_text = response.choices[0].message.content
             response_text = response_text.replace("```json", "").replace("```", "").strip()
@@ -407,8 +423,48 @@ class OutlineOptimizer:
             return result
             
         except Exception as e:
-            st.error(f"AI Analysis Error: {str(e)}")
-            return self.fallback_analysis("", "")
+            # If max_completion_tokens fails, try with max_tokens as fallback
+            if "max_tokens" in str(e) or "max_completion_tokens" in str(e):
+                try:
+                    st.warning("Adjusting token parameter for model compatibility...")
+                    # Try opposite parameter
+                    if "max_tokens" in str(e):
+                        response = self.openai_client.chat.completions.create(
+                            model=self.model,
+                            messages=[
+                                {"role": "system", "content": "You are an expert SEO analyst. Return only valid JSON."},
+                                {"role": "user", "content": prompt}
+                            ],
+                            temperature=0.3,
+                            max_completion_tokens=2000
+                        )
+                    else:
+                        response = self.openai_client.chat.completions.create(
+                            model=self.model,
+                            messages=[
+                                {"role": "system", "content": "You are an expert SEO analyst. Return only valid JSON."},
+                                {"role": "user", "content": prompt}
+                            ],
+                            temperature=0.3,
+                            max_tokens=2000
+                        )
+                    
+                    response_text = response.choices[0].message.content
+                    response_text = response_text.replace("```json", "").replace("```", "").strip()
+                    
+                    if '{' in response_text:
+                        response_text = response_text[response_text.index('{'):]
+                    if '}' in response_text:
+                        response_text = response_text[:response_text.rindex('}')+1]
+                        
+                    result = json.loads(response_text)
+                    return result
+                except Exception as retry_error:
+                    st.error(f"AI Analysis Error: {str(retry_error)}")
+                    return self.fallback_analysis("", "")
+            else:
+                st.error(f"AI Analysis Error: {str(e)}")
+                return self.fallback_analysis("", "")
     
     def _gemini_analysis(self, prompt):
         """Process with Google Gemini"""
